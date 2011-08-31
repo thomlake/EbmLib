@@ -5,10 +5,11 @@ EbmLib is a Python library for working with energy based model, primarily create
 Models
 -------------
 * Restricted Boltzmann Machines (Hinton, Smolensky)
-* AutoEncoders
 * Recursive Restriced Boltzmann Machines (tllake)
-* Oja's Linear Autencoder (tllake) **Coming**
-* Recursive Oja's Linear Autencoder (tllake) **Coming**
+* AutoEncoders
+* Recursive AutoEncoders **TODO**
+* Oja's Linear Autencoder **TODO**
+* Recursive Oja's Linear Autencoder (tllake) **TODO**
 
 Installation
 ============

@@ -51,7 +51,7 @@ class CdkTrainer(object):
 	def __init__(self, rbm, lr = 0.01, m = 0.4, l2 = 0.001, 
 					spen = 0.001, p = 0.1, pdecay = 0.96):
 		self.lr, self.m, self.l2 = lr, m, l2
-		self.spen, self.p, self.decay = spen, p, pdecay
+		self.spen, self.p, self.pdecay = spen, p, pdecay
 		self.q = np.zeros(rbm.nhid)
 
 	def sparseterm(self, h):
@@ -242,73 +242,4 @@ class CdkTrainer(object):
 		rbm.dcb = dcb
 		rbm.dhb = dhb
 
-def test():
-	SEQS = ['bpvpse', 'btsssxxtvve', 'btsxse', 'bpttttvve', 'bpttvve', \
-				'btxxvve', 'btxse', 'bpttvpse','btssxse', 'btsxxvpxvve',	\
-				'btxxtvve', 'btsssxse', 'bptvve', 'btxxvpse', 'bptttvve', \
-				'bpvpse']
-	moreseq = [\
-				'bptvpxvpse', 'btsxxtttvve', 'bpvpxvve', 'bptvpse', \
-				'btsxxtvpse', 'bptvpxvve', 'bpvve', 'btxxtvpse', \
-				'bpttttvpse', 'bpvpxtttvve', 'btsxxtvpxttvpse', \
-				'btxxvpxtvpse', 'btxxvpxvve', 'bptttvpxtvve', \
-				'bptvpxvpxtvpse', 'btxxtttvpxtvve', 'bptttvpxvpse', \
-				'btxxvpxvpse', 'btssxxvpse', 'bpvpxttvpse', 'bpvpxtvve', \
-				'bptvpxvpxtvve', 'btsxxvpse', 'btssxxtvve', 'btsxxttvve', \
-				'btsssxxvpse', 'bpvpxttvve', 'btsxxvve', 'btsxxvpxttvve', \
-				'bptttttvve', 'btsxxtvve', 'btsssxxvve', 'btsxxtvpxvve', \
-				'bpttttvpxvpse', 'btsxxttvpxtvve']
-	
-	ALPHABET = ['b','t','p','s','x','v','e']
-	N = 20
-	PATDICT = dict([(X, None) for X in ALPHABET])
-	INDICT = []
-	for X in ALPHABET:
-		while PATDICT[X] is None:
-			pat = np.zeros(N)
-			pat[np.random.randint(0,N,3)] = 1.
-			string_pat = ''.join(['+' if x == 1 else '-' for x in pat])
-			if string_pat not in INDICT:
-				PATDICT[X] = pat
-				INDICT.append(string_pat)
 
-			
-	for key, val in PATDICT.items():
-		print key, ''.join(['+' if x == 1. else '-' for x in val])
-	
-	net = Srrbm(N, 20)
-	trainer = SrrbmCdkTrainer(net)
-	
-	epoch = 0
-	while True:
-		for string in SEQS:
-			net.reset()
-			#X = [PATDICT[char] for char in string]
-			#trainer.learn_batch(net, X, s = True, l2 = False)
-			for char in string:
-				obs = PATDICT[char]
-				trainer.learn(net, obs, s = True, l2 = False)
-		epoch += 1
-		if epoch and epoch % 100 == 0:
-			err = 0.
-			tot = 0.
-			for string in SEQS:
-				net.reset()
-				rev = []
-				for char in string:
-					obs = PATDICT[char]
-					rev.append(obs)
-					net.push(obs)
-				for char in reversed(rev):
-					out = net.pop()
-					err += ((out - char)**2).sum()
-					tot += 1.
-					#print ''.join(['+' if x == 1 else '-' for x in char]),
-					#print ''.join(['+' if x == 1 else '-' for x in out])
-			print err/ tot
-
-
-
-
-#if __name__ == '__main__':
-#	test()
