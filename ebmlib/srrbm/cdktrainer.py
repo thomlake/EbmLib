@@ -199,8 +199,8 @@ class CdkTrainer(object):
 			gwc += np.outer(ph, pc) - np.outer(nh, nc)
 		
 			gvb += (pv - nv)
-			dcb += (pc - nc)
-			dhb += (ph - nh)
+			gcb += (pc - nc)
+			ghb += (ph - nh)
 
 			if s:
 				q += ph
