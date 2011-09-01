@@ -33,7 +33,6 @@ pdf documentation is not currently working.
 
 About
 -----
-
 EbmLib is very beta. You may/might/will find bugs.
 
 EbmLib is free software licensed under the `GNU General Public License <http://www.gnu.org/licenses/gpl.html>`_.

@@ -59,7 +59,7 @@ def tanh(x):
 	:returns: tanh(x)
 	:rtype: numpy.array
 	"""
-	return numpy.tanh(a)
+	return numpy.tanh(x)
 
 def rectlinear(x):
 	"""rectified linear function of x
@@ -79,7 +79,7 @@ def linear(x):
 	:returns: x
 	:rtype: numpy.array
 	"""
-	return a
+	return x
 
 #--- DERIVATIVES ---#
 def dsigmoid(y):
