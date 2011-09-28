@@ -127,7 +127,7 @@ class CdkTrainer(object):
 			sparse_penalty_term = self.sparseterm(ph)
 			gwv = (gwv.T - sparse_penalty_term).T
 			gwc = (gwc.T - sparse_penalty_term).T
-			ghb += sparse_penalty_term
+			ghb -= sparse_penalty_term
 
 		dwv = self.lr * gwv
 		dwc = self.lr * gwc
@@ -205,7 +205,7 @@ class CdkTrainer(object):
 			if s:
 				q += ph
 			rbm.push(x)
-		
+
 		# regulization
 		if l2:
 			gwv -= self.l2 * rbm.wv
@@ -217,11 +217,11 @@ class CdkTrainer(object):
 			gwc = (gwc.T - sparse_penalty_term).T
 			ghb -= sparse_penalty_term
 
-		dwv = self.lr * gwv
-		dwc = self.lr * gwc
-		dvb = self.lr * gvb
-		dcb = self.lr * gcb
-		dhb = self.lr * ghb
+		dwv = self.lr / len(X) * gwv
+		dwc = self.lr / len(X) * gwc
+		dvb = self.lr / len(X) * gvb
+		dcb = self.lr / len(X) * gcb
+		dhb = self.lr / len(X) * ghb
 
 		if m:
 			dwv += self.m * rbm.dwv

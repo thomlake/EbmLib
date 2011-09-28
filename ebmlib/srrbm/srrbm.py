@@ -28,6 +28,7 @@
 #---------------------------------------#
 
 import numpy as np
+from .. units import sigmoid
 from .. units import unittypes
 
 class Srrbm(object):
@@ -65,6 +66,8 @@ class Srrbm(object):
 		self.dcb = np.zeros(nhid)
 		self.dhb = np.zeros(nhid)
 		# activation functions
+		self.htype = htype
+		self.vtype = vtype
 		self.hact = unittypes[htype]
 		self.vact = unittypes[vtype]
 
@@ -114,3 +117,59 @@ class Srrbm(object):
 		:rtype: None
 		"""
 		self.h = np.zeros(self.nhid)
+
+	def free_energy(self, v):
+		"""compute the free energy of a visible vector
+
+		:param v: visible unit state
+		:type v: numpy.ndarray
+		:returns: free energy of v
+		:rtype: float 
+		"""
+		vbterm = np.sum(v * self.vb)
+		cbterm = np.sum(self.h * self.hb)
+		hterm = np.sum(np.log(1. + np.exp(sigmoid(np.dot(self.wv, v) + np.dot(self.wc, self.h) + self.hb))))
+		return -(vbterm + cbterm) - hterm
+
+	def __getstate__(self):
+		d = {
+			'nvis':		self.nvis,
+			'nhid':		self.nhid,	
+			'v':		self.v.copy(),
+			'c':		self.c.copy(),
+			'h':		self.h.copy(),
+			'wv':		self.wv.copy(),
+			'wc':		self.wc.copy(),
+			'vb':		self.vb.copy(),
+			'cb':		self.cb.copy(),
+			'hb':		self.hb.copy(),
+			'dwv':		self.dwv.copy(),
+			'dwc':		self.dwc.copy(),
+			'dvb':		self.dvb.copy(),
+			'dcb':		self.dcb.copy(),
+			'dhb':		self.dhb.copy(),
+			'htype':	self.htype,
+			'vtype':	self.vtype}
+		return d
+
+	def __setstate__(self, d):
+		self.nvis = 	d['nvis']
+		self.nhid = 	d['nhid']
+		self.v = 		d['v']
+		self.c = 		d['c']
+		self.h = 		d['h']
+		self.wv =		d['wv']
+		self.wc =		d['wc']
+		self.vb =		d['vb']
+		self.cb =		d['cb']
+		self.hb =		d['hb']
+		self.dwv =		d['dwv']
+		self.dwc =		d['dwc']
+		self.dvb =		d['dvb']
+		self.dcb =		d['dcb']
+		self.dhb =		d['dhb']
+		self.htype = 	d['htype']
+		self.vtype = 	d['vtype']
+		self.hact = unittypes[self.htype]
+		self.vact = unittypes[self.vtype]
+

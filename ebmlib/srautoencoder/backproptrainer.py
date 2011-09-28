@@ -61,34 +61,50 @@ class BackPropTrainer(object):
 		:type l2: bool
 		:rtype: None
 		"""
-		net.ff(x)
-		eo = self.doerr(net.o) * (x - net.o)
-		eh = self.dherr(net.h) * np.dot(net.woh.T, eo)
+		c = net.h.copy()
+		net.ff(x, c)
+		eoi = self.doerr(net.oi) * (x - net.oi)
+		eoc = self.dherr(net.oc) * (c - net.oc)
+		eh = self.dherr(net.h) * (np.dot(net.woih.T, eoi) + np.dot(net.woch.T, eoc))
 
 		if l2:
-			dwoh = self.lr * (np.outer(eo, net.h) - self.l2 * net.woh)
+			dwoih = self.lr * (np.outer(eoi, net.h) - self.l2 * net.woih)
+			dwoch = self.lr * (np.outer(eoc, net.h) - self.l2 * net.woch)
 			dwhi = self.lr * (np.outer(eh, x) - self.l2 * net.whi)
+			dwhc = self.lr * (np.outer(eh, c) - self.l2 * net.whc)
 		else:
-			dwoh = self.lr * np.outer(eo, net.h)
+			dwoih = self.lr * np.outer(eoi, net.h)
+			dwoch = self.lr * np.outer(eoc, net.h)
 			dwhi = self.lr * np.outer(eh, x)
+			dwhc = self.lr * np.outer(eh, c)
 		
-		dob = self.lr * eo
+		doib = self.lr * eoi
+		docb = self.lr * eoc
 		dhb = self.lr * eh
 
 		if m:
-			dwoh += self.m * net.dwoh
+			dwoih += self.m * net.dwoih
+			dwoch += self.m * net.dwoch
 			dwhi += self.m * net.dwhi
-			dob += self.m * net.dob
+			dwhc += self.m * net.dwhc
+			doib += self.m * net.doib
+			docb += self.m * net.docb
 			dhb += self.m * net.dhb
 
-		net.woh += dwoh
+		net.woih += dwoih
+		net.woch += dwoch
 		net.whi += dwhi
-		net.ob += dob
+		net.whc += dwhc
+		net.oib += doib
+		net.ocb += docb
 		net.hb += dhb
 
-		net.dwoh = dwoh
+		net.dwoih = dwoih
+		net.dwoch = dwoch
 		net.dwhi = dwhi
-		net.dob = dob
+		net.dwhc = dwhc
+		net.doib = doib
+		net.docb = docb
 		net.dhb = dhb
 
 	def batchlearn(self, net, X, m = True, l2 = True):
@@ -106,44 +122,66 @@ class BackPropTrainer(object):
 
 		:rtype: None
 		"""
-		dwoh = np.zeros(net.woh.shape)
+		dwoih = np.zeros(net.woih.shape)
+		dwoch = np.zeros(net.woch.shape)
 		dwhi = np.zeros(net.whi.shape)
-		dob = np.zeros(net.ob.shape)
+		dwhc = np.zeros(net.whc.shape)
+		doib = np.zeros(net.oib.shape)
+		docb = np.zeros(net.ocb.shape)
 		dhb = np.zeros(net.hb.shape)
 		
 		for x in X:
-			net.ff(x)
-			eo = self.doerr(net.o) * (x - net.o)
-			eh = self.dherr(net.h) * np.dot(net.woh.T, eo)
-			dwoh += np.outer(eo, net.h)
+			c = net.h.copy()
+			net.ff(x, c)
+			eoi = self.doerr(net.oi) * (x - net.oi)
+			eoc = self.dherr(net.oc) * (c - net.oc)
+			eh = self.dherr(net.h) * (np.dot(net.woih.T, eoi) + np.dot(net.woch.T, eoc))
+			dwoih += np.outer(eoi, net.h)
+			dwoch += np.outer(eoc, net.h)
 			dwhi += np.outer(eh, x)
-			dob += eo
+			dwhc += np.outer(eh, c)
+			doib += eoi
+			docb += eoc
 			dhb += eh
 
 		if l2:
-			dwoh = self.lr * (dwoh - self.l2 * net.woh)/len(X)
-			dwhi = self.lr * (dwhi - self.l2 * net.whi)/len(X)
+			dwoih = self.lr * ((dwoih / len(X)) - self.l2 * net.woih)
+			dwoch = self.lr * ((dwoch / len(X)) - self.l2 * net.woch)
+			dwhi = self.lr * ((dwhi / len(X)) - self.l2 * net.whi)
+			dwhc = self.lr * ((dwhc / len(X)) - self.l2 * net.whc)
 		else:
-			dwoh = self.lr * dwoh / len(X)
+			dwoih = self.lr * dwoih / len(X)
+			dwoch = self.lr * dwoch / len(X)
 			dwhi = self.lr * dwhi / len(X)
-
-		dob = self.lr * dob / len(X)
-		dhb = self.lr * dhb / len(X)
+			dwhc = self.lr * dwhc / len(X)
 		
+		doib = self.lr * doib / len(X)
+		docb = self.lr * docb / len(X)
+		dhb = self.lr * dhb / len(X)
+
 		if m:
-			dwoh += self.m * net.dwoh
+			dwoih += self.m * net.dwoih
+			dwoch += self.m * net.dwoch
 			dwhi += self.m * net.dwhi
-			dob += self.m * net.dob
+			dwhc += self.m * net.dwhc
+			doib += self.m * net.doib
+			docb += self.m * net.docb
 			dhb += self.m * net.dhb
 
-		net.woh += dwoh
+		net.woih += dwoih
+		net.woch += dwoch
 		net.whi += dwhi
-		net.ob += dob
+		net.whc += dwhc
+		net.oib += doib
+		net.ocb += docb
 		net.hb += dhb
 
-		net.dwoh = dwoh
+		net.dwoih = dwoih
+		net.dwoch = dwoch
 		net.dwhi = dwhi
-		net.dob = dob
+		net.dwhc = dwhc
+		net.doib = doib
+		net.docb = docb
 		net.dhb = dhb
 
 class SparseBackPropTrainer(object):
@@ -209,34 +247,50 @@ class SparseBackPropTrainer(object):
 
 		:rtype: None
 		"""
-		net.ff(x)
-		eo = self.doerr(net.o) * (x - net.o)
-		eh = self.dherr(net.h) * (np.dot(net.woh.T, eo) - self.sparseterm(net.h))
+		c = net.h.copy()
+		net.ff(x, c)
+		eoi = self.doerr(net.oi) * (x - net.oi)
+		eoc = self.dherr(net.oc) * (c - net.oc)
+		eh = self.dherr(net.h) * (np.dot(net.woih.T, eoi) + np.dot(net.woch.T, eoc) - self.sparseterm(net.h))
 
 		if l2:
-			dwoh = self.lr * (np.outer(eo, net.h) - self.l2 * net.woh)
+			dwoih = self.lr * (np.outer(eoi, net.h) - self.l2 * net.woih)
+			dwoch = self.lr * (np.outer(eoc, net.h) - self.l2 * net.woch)
 			dwhi = self.lr * (np.outer(eh, x) - self.l2 * net.whi)
+			dwhc = self.lr * (np.outer(eh, c) - self.l2 * net.whc)
 		else:
-			dwoh = self.lr * np.outer(eo, net.h)
+			dwoih = self.lr * np.outer(eoi, net.h)
+			dwoch = self.lr * np.outer(eoc, net.h)
 			dwhi = self.lr * np.outer(eh, x)
+			dwhc = self.lr * np.outer(eh, c)
 		
-		dob = self.lr * eo
+		doib = self.lr * eoi
+		docb = self.lr * eoc
 		dhb = self.lr * eh
 
 		if m:
-			dwoh += self.m * net.dwoh
+			dwoih += self.m * net.dwoih
+			dwoch += self.m * net.dwoch
 			dwhi += self.m * net.dwhi
-			dob += self.m * net.dob
+			dwhc += self.m * net.dwhc
+			doib += self.m * net.doib
+			docb += self.m * net.docb
 			dhb += self.m * net.dhb
 
-		net.woh += dwoh
+		net.woih += dwoih
+		net.woch += dwoch
 		net.whi += dwhi
-		net.ob += dob
+		net.whc += dwhc
+		net.oib += doib
+		net.ocb += docb
 		net.hb += dhb
 
-		net.dwoh = dwoh
+		net.dwoih = dwoih
+		net.dwoch = dwoch
 		net.dwhi = dwhi
-		net.dob = dob
+		net.dwhc = dwhc
+		net.doib = doib
+		net.docb = docb
 		net.dhb = dhb
 
 	def batchlearn(self, net, X, m = True, l2 = True):
@@ -254,48 +308,72 @@ class SparseBackPropTrainer(object):
 
 		:rtype: None
 		"""
-		dwoh = np.zeros(net.woh.shape)
+		dwoih = np.zeros(net.woih.shape)
+		dwoch = np.zeros(net.woch.shape)
 		dwhi = np.zeros(net.whi.shape)
-		dob = np.zeros(net.ob.shape)
+		dwhc = np.zeros(net.whc.shape)
+		doib = np.zeros(net.oib.shape)
+		docb = np.zeros(net.ocb.shape)
 		dhb = np.zeros(net.hb.shape)
 		
 		phat = np.zeros(net.nhid)
 		for x in X:
-			net.ff(x)
+			net.push(x)
 			phat += net.h
 		phat /= len(X)
 		sparse_penalty_term = self.batchsparseterm(phat)
+
 		for x in X:
-			net.ff(x)
-			eo = self.doerr(net.o) * (x - net.o)
-			eh = self.dherr(net.h) * (np.dot(net.woh.T, eo) - sparse_penalty_term)
-			dwoh += np.outer(eo, net.h)
+			c = net.h.copy()
+			net.ff(x, c)
+			eoi = self.doerr(net.oi) * (x - net.oi)
+			eoc = self.dherr(net.oc) * (c - net.oc)
+			eh = self.dherr(net.h) * (np.dot(net.woih.T, eoi) + np.dot(net.woch.T, eoc) - sparse_penalty_term)
+			dwoih += np.outer(eoi, net.h)
+			dwoch += np.outer(eoc, net.h)
 			dwhi += np.outer(eh, x)
-			dob += eo
+			dwhc += np.outer(eh, c)
+			doib += eoi
+			docb += eoc
 			dhb += eh
 
 		if l2:
-			dwoh = self.lr * (dwoh - self.l2 * net.woh)/len(X)
-			dwhi = self.lr * (dwhi - self.l2 * net.whi)/len(X)
+			dwoih = self.lr * ((dwoih / len(X)) - self.l2 * net.woih)
+			dwoch = self.lr * ((dwoch / len(X)) - self.l2 * net.woch)
+			dwhi = self.lr * ((dwhi / len(X)) - self.l2 * net.whi)
+			dwhc = self.lr * ((dwhc / len(X)) - self.l2 * net.whc)
 		else:
-			dwoh = self.lr * dwoh / len(X)
+			dwoih = self.lr * dwoih / len(X)
+			dwoch = self.lr * dwoch / len(X)
 			dwhi = self.lr * dwhi / len(X)
-
-		dob = self.lr * dob / len(X)
-		dhb = self.lr * dhb / len(X)
+			dwhc = self.lr * dwhc / len(X)
 		
+		doib = self.lr * doib / len(X)
+		docb = self.lr * docb / len(X)
+		dhb = self.lr * dhb / len(X)
+
 		if m:
-			dwoh += self.m * net.dwoh
+			dwoih += self.m * net.dwoih
+			dwoch += self.m * net.dwoch
 			dwhi += self.m * net.dwhi
-			dob += self.m * net.dob
+			dwhc += self.m * net.dwhc
+			doib += self.m * net.doib
+			docb += self.m * net.docb
 			dhb += self.m * net.dhb
 
-		net.woh += dwoh
+		net.woih += dwoih
+		net.woch += dwoch
 		net.whi += dwhi
-		net.ob += dob
+		net.whc += dwhc
+		net.oib += doib
+		net.ocb += docb
 		net.hb += dhb
 
-		net.dwoh = dwoh
+		net.dwoih = dwoih
+		net.dwoch = dwoch
 		net.dwhi = dwhi
-		net.dob = dob
+		net.dwhc = dwhc
+		net.doib = doib
+		net.docb = docb
 		net.dhb = dhb
+

@@ -1,3 +1,3 @@
 """... automodule::"""
-from autoencoder import Autoencoder
+from srautoencoder import SimpleRecursiveAutoencoder
 from backproptrainer import BackPropTrainer, SparseBackPropTrainer

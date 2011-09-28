@@ -55,6 +55,8 @@ class Rbm(object):
 		self.dvb = np.zeros(nvis)
 		self.dhb = np.zeros(nhid)
 		# activation functions
+		self.htype = htype
+		self.vtype = vtype
 		self.hact = unittypes[htype]
 		self.vact = unittypes[vtype]
 
@@ -89,4 +91,32 @@ class Rbm(object):
 		vbterm = np.sum(v * self.vb)
 		hterm = np.sum(np.log(1. + np.exp(sigmoid(np.dot(self.w, v) + self.hb))))
 		return -vbterm - hterm
+
+	def __getstate__(self):
+		d = {
+			'nvis':		self.nvis,
+			'nhid':		self.nhid,
+			'vtype':	self.vtype,
+			'htype':	self.htype,
+			'w':		self.w.copy(),
+			'vb':		self.vb.copy(),
+			'hb':		self.hb.copy(),
+			'dw':		self.dw.copy(),
+			'dhb':		self.dhb.copy(),
+			'dvb':		self.dvb.copy()}
+		return d
+
+	def __setstate__(self, d):
+		self.nvis = 	d['nvis']
+		self.nhid =		d['nhid']
+		self.vtype = 	d['vtype']
+		self.htype = 	d['htype']
+		self.w = 		d['w']
+		self.vb = 		d['vb']
+		self.hb =		d['hb']
+		self.dw = 		d['dw']
+		self.dvb =		d['dvb']
+		self.dhb =		d['dhb']
+		self.vact = unittypes[self.vtype]
+		self.hact = unittypes[self.htype]
 
