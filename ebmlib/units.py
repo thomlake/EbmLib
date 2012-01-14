@@ -41,6 +41,12 @@ def pthresh(x):
 	"""
 	return numpy.array(sigmoid(x) >= numpy.random.random(x.shape), dtype = numpy.float32)
 
+def rthresh(x):
+	return numpy.array(x >= numpy.random.random(x.shape), dtype = numpy.float32)
+
+def thresh(x, t = 0.5):
+	return numpy.array(x >= t, dtype = numpy.float32)
+
 def sigmoid(x):
 	"""logisitc sigmoid function of x
 
@@ -69,7 +75,7 @@ def rectlinear(x):
 	:returns: max[0, x + ~ N(0, 1 / (1 + (e^(-x))))]
 	:rtype: numpy.array
 	"""
-	return numpy.maximum(0., x + numpy.random.normal(0., sigmoid(x)+0.00001, a.shape))
+	return numpy.maximum(0., x + sigmoid(x) * numpy.random.normal(0., 1, x.shape))
 
 def linear(x):
 	"""identity function
@@ -80,6 +86,29 @@ def linear(x):
 	:rtype: numpy.array
 	"""
 	return x
+
+def softmax(x):
+	"""softmax function of x
+
+	:param x: input
+	:type x: numpy.array
+	:returns: e^x_i / sum j = 1 to n e^x_j
+	:rtype: numpy.array
+	"""
+	e_to_the_x = numpy.exp(x)
+	return e_to_the_x / e_to_the_x.sum()
+
+def cat(x):
+	"""categorical, i.e. 1 of k binary
+	
+	:param x: input
+	:type x: numpy.array
+	:returns: zero array with the max of x set to 1
+	:rtype: numpy.array
+	"""
+	r = numpy.zeros(len(x))
+	r[x.argmax()] = 1
+	return r
 
 #--- DERIVATIVES ---#
 def dsigmoid(y):
@@ -128,12 +157,15 @@ unittypes = {
 	'sigmoid': sigmoid,
 	'tanh': numpy.tanh,
 	'rectlinear': rectlinear,
-	'linear': linear}
+	'linear': linear,
+	'softmax': softmax,
+	'cat': cat}
 
 # get the deirvative of a function given the name
 derivatives = {
 	'sigmoid': dsigmoid,
 	'tanh': dtanh,
 	'rectlinear': drectlinear,
-	'linear': dlinear}
+	'linear': dlinear,
+	'softmax': dlinear} # assuming cross entropy error funtion
 

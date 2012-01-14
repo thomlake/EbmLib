@@ -28,7 +28,7 @@
 #---------------------------------------#
 
 import numpy as np
-from .. units import unittypes
+from .. units import unittypes, sigmoid, rthresh, pthresh
 
 class Rbm(object):
 	"""restricted boltzmann machine class
@@ -46,12 +46,12 @@ class Rbm(object):
 		self.nvis = nvis
 		self.nhid = nhid
 		# weights
-		self.w = np.random.uniform(low = -0.2, high = 0.2, size = (nhid, nvis))
+		self.W = np.random.uniform(low = -0.2, high = 0.2, size = (nhid, nvis))
 		# biases
 		self.vb = np.zeros(nvis)
 		self.hb = np.zeros(nhid)
 		# deltas
-		self.dw = np.zeros((nhid, nvis))
+		self.dW = np.zeros((nhid, nvis))
 		self.dvb = np.zeros(nvis)
 		self.dhb = np.zeros(nhid)
 		# activation functions
@@ -68,7 +68,7 @@ class Rbm(object):
 		:returns: hidden state
 		:rtype: numpy.array
 		"""
-		return self.hact(np.dot(self.w, v) + self.hb)
+		return sigmoid(np.dot(self.W, v) + self.hb)
 
 	def fb(self, h):
 		"""sample visible given hidden
@@ -78,8 +78,17 @@ class Rbm(object):
 		:returns: visible state
 		:rtype: numpy.ndarray
 		"""
-		return self.vact(np.dot(self.w.T, h) + self.vb)
+		return sigmoid(np.dot(self.W.T, h) + self.vb)
 
+	def hid_sample(self, h):
+		return rthresh(h)
+
+	def vis_sample(self, v):
+		return rthresh(v)
+
+	def reconstruct(self, v):
+		return rthresh(self.fb(rthresh(self.ff(v))))
+	
 	def free_energy(self, v):
 		"""compute the free energy of a visible vector
 
@@ -88,9 +97,15 @@ class Rbm(object):
 		:returns: free energy of v
 		:rtype: float 
 		"""
-		vbterm = np.sum(v * self.vb)
-		hterm = np.sum(np.log(1. + np.exp(sigmoid(np.dot(self.w, v) + self.hb))))
-		return -vbterm - hterm
+		vbias_term = -1 *np.sum(v * self.vb)
+		hidden_term = -1 * np.sum(np.log(1 + np.exp(np.dot(self.W, v) + self.hb)))
+		return vbias_term + hidden_term
+
+	def energy(self, v, h):
+		vbias_term = -1 * np.sum(v * self.vb)
+		hbias_term = -1 * np.sum(h * self.hb)
+		vhterm = -1 * np.sum(self.W * np.outer(h, v))
+		return vbias_term + hbias_term + vhterm
 
 	def __getstate__(self):
 		d = {
@@ -98,10 +113,10 @@ class Rbm(object):
 			'nhid':		self.nhid,
 			'vtype':	self.vtype,
 			'htype':	self.htype,
-			'w':		self.w.copy(),
+			'W':		self.W.copy(),
 			'vb':		self.vb.copy(),
 			'hb':		self.hb.copy(),
-			'dw':		self.dw.copy(),
+			'dW':		self.dW.copy(),
 			'dhb':		self.dhb.copy(),
 			'dvb':		self.dvb.copy()}
 		return d
@@ -111,10 +126,10 @@ class Rbm(object):
 		self.nhid =		d['nhid']
 		self.vtype = 	d['vtype']
 		self.htype = 	d['htype']
-		self.w = 		d['w']
+		self.W = 		d['W']
 		self.vb = 		d['vb']
 		self.hb =		d['hb']
-		self.dw = 		d['dw']
+		self.dW = 		d['dW']
 		self.dvb =		d['dvb']
 		self.dhb =		d['dhb']
 		self.vact = unittypes[self.vtype]

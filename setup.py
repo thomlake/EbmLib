@@ -5,7 +5,7 @@ setup(
 	version='0.1.0',
 	author='tllake',
 	author_email='thom.l.lake@gmail.com',
-	packages=['ebmlib', 'ebmlib.rbm', 'ebmlib.srrbm', 'ebmlib.autoencoder', 'ebmlib.srautoencoder'],
+	packages=['ebmlib', 'ebmlib.rbm', 'ebmlib.srrbm', 'ebmlib.autoencoder', 'ebmlib.srautoencoder', 'ebmlib.structures'],
 	license='LICENSE.txt',
 	description='Energy Based Models for Python.',
 	long_description=open('README.rst').read(),

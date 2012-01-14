@@ -26,7 +26,7 @@
 # description:
 #	Contrastive Divergence for training recursive RBM variants
 #---------------------------------------#
-
+from .. units import rthresh, sigmoid
 import numpy as np
 
 class CdkTrainer(object):
@@ -53,6 +53,9 @@ class CdkTrainer(object):
 		self.lr, self.m, self.l2 = lr, m, l2
 		self.spen, self.p, self.pdecay = spen, p, pdecay
 		self.q = np.zeros(rbm.nhid)
+
+	def cross_entropy(self, x, v):
+		return (x * np.log(v + 1e-8) + (1 - x) * np.log(1 - v + 1e-8)).sum()
 
 	def sparseterm(self, h):
 		"""compute the sparse penalty term and update the exponential decaying mean approximation
@@ -96,23 +99,24 @@ class CdkTrainer(object):
 		"""
 		pv = x
 		pc = rbm.h
-		ph = rbm.ff(pv, pc)
+		ph = rbm.ff(pv, rbm.hid_sample(pc))
 		if k == 1:
-			nv, nc = rbm.fb(ph)
-			nh = rbm.ff(nv, nc)
+			#nv, nc = rbm.fb(rthresh(ph))
+			nv, nc = rbm.fb(rbm.hid_sample(ph))
+			nh = rbm.ff(rbm.vis_sample(nv), rbm.hid_sample(nc))
 		else:
 			nh = ph.copy()
 			for i in range(k):
-				nv, nc = rbm.fb(nh)
-				nh = rbm.ff(nv, nc)
+				nv, nc = rbm.fb(rbm.hid_sample(nh))
+				nh = rbm.ff(rbm.vis_sample(nv), rbm.hid_sample(nc))
 	
 		pgv = np.outer(ph, pv)
 		pgc = np.outer(ph, pc)
 		ngv = np.outer(nh, nv)
 		ngc = np.outer(nh, nc)
 
-		gwv = pgv - ngv
-		gwc = pgc - ngc
+		gWhv = pgv - ngv
+		gWhc = pgc - ngc
 		
 		gvb = pv - nv
 		gcb = pc - nc
@@ -120,45 +124,47 @@ class CdkTrainer(object):
 
 		# regulization
 		if l2:
-			gwv -= self.l2 * rbm.wv
-			gwc -= self.l2 * rbm.wc
+			gWhv -= self.l2 * rbm.Whv
+			gWhc -= self.l2 * rbm.Whc
 		# sparsity
 		if s:
 			sparse_penalty_term = self.sparseterm(ph)
-			gwv = (gwv.T - sparse_penalty_term).T
-			gwc = (gwc.T - sparse_penalty_term).T
+			gWhv = (gWhv.T - sparse_penalty_term).T
+			gWhc = (gWhc.T - sparse_penalty_term).T
 			ghb -= sparse_penalty_term
+			gcb -= sparse_penalty_term
 
-		dwv = self.lr * gwv
-		dwc = self.lr * gwc
+		dWhv = self.lr * gWhv
+		dWhc = self.lr * gWhc
 		dvb = self.lr * gvb
 		dcb = self.lr * gcb
 		dhb = self.lr * ghb
 
 		# momentum
 		if m:
-			dwv += self.m * rbm.dwv
-			dwc += self.m * rbm.dwc
+			dWhv += self.m * rbm.dWhv
+			dWhc += self.m * rbm.dWhc
 			dvb += self.m * rbm.dvb
 			dcb += self.m * rbm.dcb
 			dhb += self.m * rbm.dhb
 
-		rbm.wv += dwv
-		rbm.wc += dwc
+		rbm.Whv += dWhv
+		rbm.Whc += dWhc
 		rbm.vb += dvb
 		rbm.cb += dcb
 		rbm.hb += dhb
 
-		rbm.dwv = dwv
-		rbm.dwc = dwc
+		rbm.dWhv = dWhv
+		rbm.dWhc = dWhc
 		rbm.dvb = dvb
 		rbm.dcb = dcb
 		rbm.dhb = dhb
 
-		rbm.push(x)
+		rbm.h = ph
+		#rbm.push(x)
 
 	def batchlearn(self, rbm, X, k = 1, m = True, l2 = True, s = True):
-		"""cdk weight update for a batch visible vector
+		"""cdk weight update for a sequence of visible vector
 
 		:param rbm: model to update
 		:param X: datapoints
@@ -174,8 +180,8 @@ class CdkTrainer(object):
 		:type s: bool
 		:rtype: None
 		"""
-		gwv = np.zeros(rbm.wv.shape)
-		gwc = np.zeros(rbm.wc.shape)
+		gWhv = np.zeros(rbm.Whv.shape)
+		gWhc = np.zeros(rbm.Whc.shape)
 		gvb = np.zeros(rbm.vb.shape)
 		gcb = np.zeros(rbm.cb.shape)
 		ghb = np.zeros(rbm.hb.shape)
@@ -185,18 +191,18 @@ class CdkTrainer(object):
 		for x in X:
 			pv = x
 			pc = rbm.h
-			ph = rbm.ff(pv, pc)
+			ph = rbm.ff(pv, rbm.hid_sample(pc))
 			if k == 1:
-				nv, nc = rbm.fb(ph)
-				nh = rbm.ff(nv, nc)
+				nv, nc = rbm.fb(rbm.hid_sample(ph))
+				nh = rbm.ff(rbm.vis_sample(nv), rbm.hid_sample(nc))
 			else:
 				nh = ph.copy()
 				for i in range(k):
-					nv, nc = rbm.fb(nh)
-					nh = rbm.ff(nv, nc)
+					nv, nc = rbm.fb(rbm.hid_sample(nh))
+					nh = rbm.ff(rbm.vis_sample(nv), rbm.hid_sample(nc))
 	
-			gwv += np.outer(ph, pv) - np.outer(nh, nv)
-			gwc += np.outer(ph, pc) - np.outer(nh, nc)
+			gWhv += np.outer(ph, pv) - np.outer(nh, nv)
+			gWhc += np.outer(ph, pc) - np.outer(nh, nc)
 		
 			gvb += (pv - nv)
 			gcb += (pc - nc)
@@ -204,40 +210,56 @@ class CdkTrainer(object):
 
 			if s:
 				q += ph
-			rbm.push(x)
+			
+			#rbm.push(x)
+			rbm.h = ph
+
+		gWhv /= len(X)
+		gWhc /= len(X)
+		gvb /= len(X)
+		ghb /= len(X)
+		gcb /= len(X)
 
 		# regulization
 		if l2:
-			gwv -= self.l2 * rbm.wv
-			gwc -= self.l2 * rbm.wc
+			gWhv -= self.l2 * rbm.Whv
+			gWhc -= self.l2 * rbm.Whc
 		# sparsity
 		if s:
 			sparse_penalty_term = self.batchsparseterm(q/len(X))
-			gwv = (gwv.T - sparse_penalty_term).T
-			gwc = (gwc.T - sparse_penalty_term).T
+			gWhv = (gWhv.T - sparse_penalty_term).T
+			gWhc = (gWhc.T - sparse_penalty_term).T
 			ghb -= sparse_penalty_term
+			gcb -= sparse_penalty_term
 
-		dwv = self.lr / len(X) * gwv
-		dwc = self.lr / len(X) * gwc
-		dvb = self.lr / len(X) * gvb
-		dcb = self.lr / len(X) * gcb
-		dhb = self.lr / len(X) * ghb
+		#dwv = self.lr / len(X) * gwv
+		#dwc = self.lr / len(X) * gwc
+		#dvb = self.lr / len(X) * gvb
+		#dcb = self.lr / len(X) * gcb
+		#dhb = self.lr / len(X) * ghb
+		
+		dWhv = self.lr * gWhv
+		dWhc = self.lr * gWhc
+		dvb = self.lr * gvb
+		dcb = self.lr * gcb
+		dhb = self.lr * ghb
+
 
 		if m:
-			dwv += self.m * rbm.dwv
-			dwc += self.m * rbm.dwc
+			dWhv += self.m * rbm.dWhv
+			dWhc += self.m * rbm.dWhc
 			dvb += self.m * rbm.dvb
 			dcb += self.m * rbm.dcb
 			dhb += self.m * rbm.dhb
 
-		rbm.wv += dwv
-		rbm.wc += dwc
+		rbm.Whv += dWhv
+		rbm.Whc += dWhc
 		rbm.vb += dvb
 		rbm.cb += dcb
 		rbm.hb += dhb
 
-		rbm.dwv = dwv
-		rbm.dwc = dwc
+		rbm.dWhv = dWhv
+		rbm.dWhc = dWhc
 		rbm.dvb = dvb
 		rbm.dcb = dcb
 		rbm.dhb = dhb

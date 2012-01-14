@@ -28,7 +28,7 @@
 #---------------------------------------#
 
 import numpy as np
-from .. units import sigmoid
+from .. units import sigmoid, rthresh
 from .. units import unittypes
 
 class Srrbm(object):
@@ -52,15 +52,15 @@ class Srrbm(object):
 		self.c = np.zeros(nhid)
 		self.h = np.zeros(nhid)
 		# weights
-		self.wv = np.random.uniform(low = -0.2, high = 0.2, size = (nhid, nvis))
-		self.wc = np.random.uniform(low = -0.2, high = 0.2, size = (nhid, nhid))
+		self.Whv = np.random.uniform(low = -0.2, high = 0.2, size = (nhid, nvis))
+		self.Whc = np.random.uniform(low = -0.2, high = 0.2, size = (nhid, nhid))
 		# biases
 		self.vb = np.zeros(nvis)
 		self.cb = np.zeros(nhid)
 		self.hb = np.zeros(nhid)
 		# delta weights
-		self.dwv = np.zeros((nhid, nvis))
-		self.dwc = np.zeros((nhid, nhid))
+		self.dWhv = np.zeros((nhid, nvis))
+		self.dWhc = np.zeros((nhid, nhid))
 		# delta biases
 		self.dvb = np.zeros(nvis)
 		self.dcb = np.zeros(nhid)
@@ -81,7 +81,7 @@ class Srrbm(object):
 		:returns: hidden state
 		:rtype: numpy.array
 		"""
-		return self.hact(np.dot(self.wv, v) + np.dot(self.wc, c) + self.hb)
+		return sigmoid(np.dot(self.Whv, v) + np.dot(self.Whc, c) + self.hb)
 
 	def fb(self, h):
 		"""sample hidden given visible
@@ -91,7 +91,13 @@ class Srrbm(object):
 		:returns: visible state, context state
 		:rtype: tuple (numpy.array, numpy.array)
 		"""
-		return self.vact(np.dot(self.wv.T, h) + self.vb), self.hact(np.dot(self.wc.T, h) + self.cb)
+		return sigmoid(np.dot(self.Whv.T, h) + self.vb), sigmoid(np.dot(self.Whc.T, h) + self.cb)
+
+	def hid_sample(self, h):
+		return rthresh(h)
+
+	def vis_sample(self, v):
+		return rthresh(v)
 
 	def push(self, x):
 		"""push an input x
@@ -100,7 +106,7 @@ class Srrbm(object):
 		:type x: numpy.array
 		:rtype: None
 		"""
-		self.h = self.ff(x, self.h)
+		self.h = self.ff(x, self.hid_sample(self.h))
 
 	def pop(self):
 		"""pop a visible state and return it
@@ -108,8 +114,8 @@ class Srrbm(object):
 		:returns: visible state
 		:rtype: numpy.array
 		"""
-		v, self.h = self.fb(self.h)
-		return v
+		v, self.h = self.fb(self.hid_sample(self.h))
+		return self.vis_sample(v)
 
 	def reset(self):
 		"""reset the netowrks stateful hidden units to 0
@@ -126,10 +132,10 @@ class Srrbm(object):
 		:returns: free energy of v
 		:rtype: float 
 		"""
-		vbterm = np.sum(v * self.vb)
-		cbterm = np.sum(self.h * self.hb)
-		hterm = np.sum(np.log(1. + np.exp(sigmoid(np.dot(self.wv, v) + np.dot(self.wc, self.h) + self.hb))))
-		return -(vbterm + cbterm) - hterm
+		vbias_term = -1 * np.sum(v * self.vb)
+		cbias_term = -1 * np.sum(self.h * self.cb)
+		hidden_term = -1 * np.sum(np.log(1 + np.exp(np.dot(self.Whv, v) + np.dot(self.Whc, self.h) + self.hb)))
+		return vbias_term + cbias_term + hidden_term
 
 	def __getstate__(self):
 		d = {
@@ -138,13 +144,13 @@ class Srrbm(object):
 			'v':		self.v.copy(),
 			'c':		self.c.copy(),
 			'h':		self.h.copy(),
-			'wv':		self.wv.copy(),
-			'wc':		self.wc.copy(),
+			'Whv':		self.Whv.copy(),
+			'Whc':		self.Whc.copy(),
 			'vb':		self.vb.copy(),
 			'cb':		self.cb.copy(),
 			'hb':		self.hb.copy(),
-			'dwv':		self.dwv.copy(),
-			'dwc':		self.dwc.copy(),
+			'dWhv':		self.dWhv.copy(),
+			'dWhc':		self.dWhc.copy(),
 			'dvb':		self.dvb.copy(),
 			'dcb':		self.dcb.copy(),
 			'dhb':		self.dhb.copy(),
@@ -158,13 +164,13 @@ class Srrbm(object):
 		self.v = 		d['v']
 		self.c = 		d['c']
 		self.h = 		d['h']
-		self.wv =		d['wv']
-		self.wc =		d['wc']
+		self.Whv =		d['Whv']
+		self.Whc =		d['Whc']
 		self.vb =		d['vb']
 		self.cb =		d['cb']
 		self.hb =		d['hb']
-		self.dwv =		d['dwv']
-		self.dwc =		d['dwc']
+		self.dWhv =		d['dWhv']
+		self.dWhc =		d['dWhc']
 		self.dvb =		d['dvb']
 		self.dcb =		d['dcb']
 		self.dhb =		d['dhb']

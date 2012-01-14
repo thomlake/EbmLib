@@ -1,2 +1,2 @@
 """... automodule::"""
-import units, rbm, srrbm, autoencoder, srautoencoder
+import units, rbm, srrbm, autoencoder, srautoencoder, structures

@@ -28,7 +28,7 @@
 #---------------------------------------#
 
 import numpy as np
-
+from .. units import sigmoid, rthresh
 class CdkTrainer(object):
 	"""contrastive divergence trainer class
 
@@ -53,6 +53,10 @@ class CdkTrainer(object):
 		self.lr, self.m, self.l2 = lr, m, l2
 		self.spen, self.p, self.pdecay = spen, p, pdecay
 		self.q = np.zeros(rbm.nhid)
+
+	def cross_entropy(self, x, v):
+		"""compute the cross entropy of a reconstruction of an input x"""
+		return (x * np.log(v + 1e-8) + (1 - x) * np.log(1 - v + 1e-8)).sum()
 
 	def sparseterm(self, h):
 		"""compute the sparse penalty term and update the exponential decaying mean approximation
@@ -98,45 +102,45 @@ class CdkTrainer(object):
 		pv = x
 		ph = rbm.ff(x)
 		if k == 1:
-			nv = rbm.fb(ph)
-			nh = rbm.ff(nv)
+			nv = rbm.vis_sample(rbm.fb(ph))
+			nh = rbm.ff(rbm.vis_sample(nv))
 		else:
 			nh = ph.copy()
 			for i in range(k):
-				nv = rbm.fb(nh)
-				nh = rbm.ff(nv)
+				nv = rbm.fb(rbm.hid_sample(nh))
+				nh = rbm.ff(rbm.vis_sample(nv))
 	
 		pg = np.outer(ph, pv)
 		ng = np.outer(nh, nv)
 
-		gw = pg - ng
+		gW = pg - ng
 		gvb = pv - nv
 		ghb = ph - nh
 
 		# regulization
 		if l2:
-			gw -= (self.l2 * rbm.w)
+			gW -= (self.l2 * rbm.W)
 		# sparisty
 		if s:
 			sparse_penalty_term = self.sparseterm(ph)
-			gw = (gw.T - sparse_penalty_term).T
-			ghb += sparse_penalty_term
+			gW = (gW.T - sparse_penalty_term).T
+			ghb -= sparse_penalty_term
 
-		dw = self.lr * gw
+		dW = self.lr * gW
 		dvb = self.lr * gvb
 		dhb = self.lr * ghb
 
 		# momentum
 		if m:
-			dw += self.m * rbm.dw
+			dW += self.m * rbm.dW
 			dvb += self.m * rbm.dvb
 			dhb += self.m * rbm.dhb
 
-		rbm.w += dw
+		rbm.W += dW
 		rbm.vb += dvb
 		rbm.hb += dhb
 
-		rbm.dw = dw
+		rbm.dW = dW
 		rbm.dvb = dvb
 		rbm.dhb = dhb
 
@@ -159,7 +163,7 @@ class CdkTrainer(object):
 
 		:rtype: None
 		"""
-		dw = np.zeros(rbm.w.shape)
+		dW = np.zeros(rbm.W.shape)
 		dvb = np.zeros(rbm.vb.shape)
 		dhb = np.zeros(rbm.hb.shape)
 		
@@ -169,48 +173,48 @@ class CdkTrainer(object):
 			pv = x
 			ph = rbm.ff(x)
 			if k == 1:
-				nv = rbm.fb(ph)
-				nh = rbm.ff(nv)
+				nv = rbm.fb(rbm.hid_sample(ph))
+				nh = rbm.ff(rbm.vis_sample(nv))
 			else:
 				nh = ph.copy()
 				for i in range(k):
-					nv = rbm.fb(nh)
-					nh = rbm.ff(nv)
+					nv = rbm.fb(rbm.hid_sample(nh))
+					nh = rbm.ff(rbm.vis_sample(nv))
 	
 			pg = np.outer(ph, pv)
 			ng = np.outer(nh, nv)
 		
 			dvb += (pv - nv)
 			dhb += (ph - nh)
-			dw += pg - ng
+			dW += pg - ng
 			
 			if s:
 				q += ph
 	
 		# regularization
 		if l2:
-			dw -= self.l2 * rbm.w
+			dW -= self.l2 * rbm.W
 		# sparsity
 		if s:
 			sparse_penalty_term = self.batchsparseterm(q/len(X))
-			dw = (dw.T - sparse_penalty_term).T
+			dW = (dW.T - sparse_penalty_term).T
 			dhb -= sparse_penalty_term
 
 			
-		dw = self.lr * dw / len(X)
+		dW = self.lr * dW / len(X)
 		dvb = self.lr * dvb / len(X)
 		dhb = self.lr * dhb  / len(X)
 
 		if m:
-			dw += self.m * rbm.dw
+			dW += self.m * rbm.dW
 			dvb += self.m * rbm.dvb
 			dhb += self.m * rbm.dhb
 
-		rbm.w += dw
+		rbm.W += dW
 		rbm.vb += dvb
 		rbm.hb += dhb
 
-		rbm.dw = dw
+		rbm.dW = dW
 		rbm.dvb = dvb
 		rbm.dhb = dhb
 
