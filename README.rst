@@ -7,8 +7,6 @@ Models
 * Restricted Boltzmann Machines
 * Recursive Restriced Boltzmann Machines
 * AutoEncoders
-* Recursive AutoEncoders **TODO**
-* Oja's Linear Autencoder **TODO**
 
 Installation
 ============
