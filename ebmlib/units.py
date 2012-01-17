@@ -30,25 +30,64 @@
 
 import numpy
 
-#--- ACTIVATION FUNCTIONS ---#
+#--- SAMPLING FUNCTIONS --#
 def pthresh(x):
 	"""probabilistic step funtion of x
 
 	:param x: input
 	:type x: numpy.array
-	:returns: 1 if x_i >= ~ U(0,1) else 0 for x_i \in x
+	:returns: 1 if sigmoid(x_i) >= ~ U(0,1) else 0 for x_i \in x
 	:rtype: numpy.array
 	"""
 	return numpy.array(sigmoid(x) >= numpy.random.random(x.shape), dtype = numpy.float32)
 
 def rthresh(x):
+	""" sample r, r_i ~ bernoulli(p = x_i)
+	:param x: input
+	:type x: numpy.array
+	:returns: 1 if x_i >= ~ U(0,1) else 0 for x_i \in x
+	:rtype: numpy.array
+	"""
 	return numpy.array(x >= numpy.random.random(x.shape), dtype = numpy.float32)
 
+def cat(x)
+	""" sample categorical where p(x_i) = \frac{x_i}{\sum_{j = 1}^{n} x_j},
+	
+	NOTE: this faster than drawing a single multinomial sample with numpy
+	:param x: input
+	:type x: numpy.array
+	:returns: binary vector r, where r_i = 1 if i is the chosen category else r_i = 0
+	:rtype: numpy.array
+	"""
+	r = np.zeros(len(x))
+	r[h.cumsum().searchsorted(np.random.random())] = 1
+	return r
+
+def catidx(x)
+	""" sample categorical where p(x_i) = \frac{x_i}{\sum_{j = 1}^{n} x_j},
+	
+	NOTE: this faster than drawing a single multinomial sample with numpy
+	:param x: input
+	:type x: numpy.array
+	:returns: the index i of the chosen category, 0 <= i < len(x)
+	:rtype: int
+	"""
+	return x.cumsum().searchsorted(np.random.random())
+
+#--- ACTIVATION FUNCTIONS ---#
 def thresh(x, t = 0.5):
+	""" step function
+	:param x: input
+	:param t: threshold
+	:type x: numpy.array
+	:type t: float
+	:returns: 1 if x_i >= t else 0 for x_i \in x
+	:rtype: numpy.array
+	"""
 	return numpy.array(x >= t, dtype = numpy.float32)
 
 def sigmoid(x):
-	"""logisitc sigmoid function of x
+	"""logisitc sigmoid of x
 
 	:param x: input
 	:type x: numpy.array
@@ -98,8 +137,8 @@ def softmax(x):
 	e_to_the_x = numpy.exp(x)
 	return e_to_the_x / e_to_the_x.sum()
 
-def cat(x):
-	"""categorical, i.e. 1 of k binary
+def detcat(x):
+	"""deterministic categorical, i.e. 1 of k binary
 	
 	:param x: input
 	:type x: numpy.array
@@ -109,6 +148,16 @@ def cat(x):
 	r = numpy.zeros(len(x))
 	r[x.argmax()] = 1
 	return r
+
+def detcatidx(x):
+	""" index of a deterministic categorical, i.e. 1 of k binary
+	
+	:param x: input
+	:type x: numpy.array
+	:returns: i = x.argmax(), 0 <= i < len(x)
+	:rtype: int
+	"""
+	return x.argmax()
 
 #--- DERIVATIVES ---#
 def dsigmoid(y):
