@@ -50,7 +50,7 @@ def rthresh(x):
 	"""
 	return numpy.array(x >= numpy.random.random(x.shape), dtype = numpy.float32)
 
-def cat(x)
+def cat(x):
 	""" sample categorical where p(x_i) = \frac{x_i}{\sum_{j = 1}^{n} x_j},
 	
 	NOTE: this faster than drawing a single multinomial sample with numpy
@@ -63,7 +63,7 @@ def cat(x)
 	r[h.cumsum().searchsorted(np.random.random())] = 1
 	return r
 
-def catidx(x)
+def catidx(x):
 	""" sample categorical where p(x_i) = \frac{x_i}{\sum_{j = 1}^{n} x_j},
 	
 	NOTE: this faster than drawing a single multinomial sample with numpy
